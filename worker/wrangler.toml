@@ -1,0 +1,12 @@
+name = "portfolio"
+main = "src/index.js"
+compatibility_date = "2025-01-01"
+
+[[d1_databases]]
+binding = "DB"
+database_name = "portfolio"
+database_id = "3a5bfecb-63e7-4660-9bc8-087c79ae8398"
+
+[vars]
+# Só o seu site pode falar com a API. Não coloque localhost aqui em produção.
+ALLOWED_ORIGINS = "https://ayrezrblx.github.io,http://localhost:5173"
