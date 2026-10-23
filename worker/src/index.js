@@ -160,15 +160,26 @@ const routes = {
     if (!isAdmin(env, ip)) return out({ error: 'não autorizado' }, 403)
     const id = String(query.get('placeId') || '').replace(/\D/g, '')
     if (!id || id.length > 15) return out({ error: 'ID inválido' }, 400)
-    const get = (u) => fetch(u, { headers: { Accept: 'application/json' } }).then((r) => { if (!r.ok) throw new Error(r.status); return r.json() })
+    const get = async (u) => {
+      const r = await fetch(u, { headers: { Accept: 'application/json', 'User-Agent': 'Mozilla/5.0 (compatible; portfolio-admin)' } })
+      if (!r.ok) throw new Error(`${r.status} ${new URL(u).hostname}`)
+      return r.json()
+    }
+    const why = []
+    // 1) place -> universe -> nome
     try {
       const { universeId } = await get(`https://apis.roblox.com/universes/v1/places/${id}/universe`)
       const j = await get(`https://games.roblox.com/v1/games?universeIds=${universeId}`)
-      const name = j.data?.[0]?.name
-      return name ? out({ name: str(name, 60) }) : out({ error: 'jogo não encontrado' }, 404)
-    } catch {
-      return out({ error: 'jogo não encontrado' }, 404)
-    }
+      if (j.data?.[0]?.name) return out({ name: str(j.data[0].name, 60) })
+      why.push('sem nome na resposta')
+    } catch (e) { why.push(e.message) }
+    // 2) reserva: o place também é um asset com nome
+    try {
+      const j = await get(`https://economy.roblox.com/v2/assets/${id}/details`)
+      if (j.Name) return out({ name: str(j.Name, 60) })
+      why.push('sem nome na resposta')
+    } catch (e) { why.push(e.message) }
+    return out({ error: 'jogo não encontrado', detail: why.join(' | ') }, 404)
   },
 }
 

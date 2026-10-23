@@ -11,7 +11,7 @@ const api = (path, { method = 'GET', body, token } = {}) =>
     body: body ? JSON.stringify(body) : undefined,
   }).then(async (r) => {
     const j = await r.json().catch(() => ({}))
-    if (!r.ok) throw new Error(j.error || `Erro ${r.status}`)
+    if (!r.ok) throw new Error(j.detail ? `${j.error}: ${j.detail}` : j.error || `Erro ${r.status}`)
     return j
   })
 
