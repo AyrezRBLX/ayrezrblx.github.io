@@ -15,6 +15,11 @@ npx wrangler deploy
 
 Depois, em `src/config.js`, ponha a URL do Worker em `API_URL` e faça push.
 
+## Tradução automática e nome do jogo
+
+- O `wrangler.toml` já tem o binding `[ai]`. Basta rodar `npx wrangler deploy` de novo: ao publicar no painel, o texto em português é traduzido para inglês (modelo `@cf/meta/m2m100-1.2b`) e guardado no D1, então cada frase é traduzida uma vez só.
+- A rota `GET /roblox/game?placeId=ID` busca o nome do jogo no Roblox. Só responde para o seu IP de admin.
+
 ## Descobrir o seu IP e liberar
 
 1. Abra `https://SEU-WORKER.workers.dev/auth/me` no navegador. Aparece algo como `{"admin":false,"ip":"203.0.113.9"}`.

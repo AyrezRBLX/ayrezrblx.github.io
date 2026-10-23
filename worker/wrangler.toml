@@ -2,6 +2,10 @@ name = "portfolio"
 main = "src/index.js"
 compatibility_date = "2025-01-01"
 
+# Tradução automática PT → EN (Workers AI)
+[ai]
+binding = "AI"
+
 [[d1_databases]]
 binding = "DB"
 database_name = "portfolio"

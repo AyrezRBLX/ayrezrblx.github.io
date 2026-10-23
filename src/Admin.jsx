@@ -1,5 +1,6 @@
-import { useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { API_URL } from './config.js'
+import { mergeContent } from './content.js'
 
 /* ---------- API ---------- */
 
@@ -37,18 +38,12 @@ const T = ({ label, value, onChange, area, ph }) => (
   </label>
 )
 
-// Atualiza uma língua e mantém a outra (cria os dois campos se ainda não existirem)
-const withKey = (value, k, v) => ({ pt: '', en: '', ...value, [k]: v })
-
-// Campo em português e inglês
+// Texto só em português. O inglês é traduzido sozinho quando você publica.
 const P = ({ label, value, onChange, area }) => (
-  <div className="apair">
-    <T label={`${label} · PT`} area={area} value={value?.pt} onChange={(v) => onChange(withKey(value, 'pt', v))} />
-    <T label={`${label} · EN`} area={area} value={value?.en} onChange={(v) => onChange(withKey(value, 'en', v))} />
-  </div>
+  <T label={label} area={area} value={value?.pt} onChange={(v) => onChange({ ...value, pt: v })} />
 )
 
-const Tags = ({ value, onChange }) => {
+const Tags = ({ value, onChange, suggest = [] }) => {
   const [v, setV] = useState('')
   const add = () => {
     const t = v.trim()
@@ -62,6 +57,9 @@ const Tags = ({ value, onChange }) => {
       ))}
       <input value={v} placeholder="Nova tag + Enter" onChange={(e) => setV(e.target.value)} onBlur={add}
         onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ',') { e.preventDefault(); add() } }} />
+      {suggest.filter((t) => !value.includes(t)).map((t) => (
+        <button key={t} type="button" className="asug" onClick={() => onChange([...value, t])}>+ {t}</button>
+      ))}
     </div>
   )
 }
@@ -83,20 +81,16 @@ const Item = ({ title, i, n, onMove, onDel, children }) => (
 /* ---------- abas ---------- */
 
 const AboutTab = ({ c, set }) => (
-  <>
-    {['pt', 'en'].map((l) => (
-      <section key={l} className="asec">
-        <h5>{l === 'pt' ? 'Português' : 'English'}</h5>
-        {c.about[l].map((p, i) => (
-          <div key={i} className="arow">
-            <textarea rows={5} value={p} onChange={(e) => set({ about: { ...c.about, [l]: upd(c.about[l], i, e.target.value) } })} />
-            <button className="aico" aria-label="Remover" onClick={() => set({ about: { ...c.about, [l]: del(c.about[l], i) } })}>✕</button>
-          </div>
-        ))}
-        <button className="btn" onClick={() => set({ about: { ...c.about, [l]: [...c.about[l], ''] } })}>+ Parágrafo</button>
-      </section>
+  <section className="asec">
+    <p className="ahint">Escreva só em português. A versão em inglês é gerada automaticamente ao publicar.</p>
+    {c.about.pt.map((p, i) => (
+      <div key={i} className="arow">
+        <textarea rows={5} value={p} onChange={(e) => set({ about: { ...c.about, pt: upd(c.about.pt, i, e.target.value) } })} />
+        <button className="aico" aria-label="Remover" onClick={() => set({ about: { ...c.about, pt: del(c.about.pt, i) } })}>✕</button>
+      </div>
     ))}
-  </>
+    <button className="btn" onClick={() => set({ about: { ...c.about, pt: [...c.about.pt, ''] } })}>+ Parágrafo</button>
+  </section>
 )
 
 const ICONS = ['code', 'server', 'monitor', 'gauge', 'network', 'wrench']
@@ -105,6 +99,7 @@ const SkillsTab = ({ c, set }) => {
   const up = (i, patch) => set({ skills: upd(c.skills, i, { ...c.skills[i], ...patch }) })
   return (
     <>
+      <p className="ahint">Escreva só em português. O inglês é traduzido sozinho ao publicar.</p>
       {c.skills.map((s, i) => (
         <Item key={i} i={i} n={c.skills.length} title={s.title}
           onMove={(d) => set({ skills: move(c.skills, i, d) })} onDel={() => set({ skills: del(c.skills, i) })}>
@@ -124,58 +119,83 @@ const SkillsTab = ({ c, set }) => {
   )
 }
 
-const GamesTab = ({ c, set }) => {
-  const up = (i, patch) => set({ games: upd(c.games, i, { ...c.games[i], ...patch }) })
+const GAME_TAGS = ['Full-Stack', 'Long-Term', 'Short-Term']
+
+// Quando o ID muda, busca o nome do jogo no Roblox (via Worker) e preenche o campo Nome
+const GameItem = ({ g, i, c, set }) => {
+  const up = (patch) => set({ games: upd(c.games, i, { ...c.games[i], ...patch }) })
+  const latest = useRef(up)
+  latest.current = up
+  const prev = useRef(g.placeId)
+  const [look, setLook] = useState({ s: 'idle', m: '' })
+
+  useEffect(() => {
+    if (prev.current === g.placeId) return
+    prev.current = g.placeId
+    if (!g.placeId) { setLook({ s: 'idle', m: '' }); return }
+    let alive = true
+    setLook({ s: 'load', m: 'Buscando o nome no Roblox…' })
+    const t = setTimeout(() => {
+      api(`/roblox/game?placeId=${g.placeId}`)
+        .then(({ name }) => { if (!alive) return; latest.current({ name }); setLook({ s: 'ok', m: 'Nome preenchido automaticamente ✓' }) })
+        .catch((e) => alive && setLook({ s: 'err', m: `Não achei esse ID (${e.message}). Confira o número ou escreva o nome.` }))
+    }, 600)
+    return () => { alive = false; clearTimeout(t) }
+  }, [g.placeId])
+
   return (
-    <>
-      {c.games.map((g, i) => (
-        <Item key={i} i={i} n={c.games.length} title={g.name}
-          onMove={(d) => set({ games: move(c.games, i, d) })} onDel={() => set({ games: del(c.games, i) })}>
-          <T label="Nome" value={g.name} onChange={(v) => up(i, { name: v })} />
-          <T label="ID do jogo (roblox.com/games/ID). Vazio = Em breve" value={g.placeId ?? ''} ph="9285238704"
-            onChange={(v) => up(i, { placeId: v.replace(/\D/g, '') === '' ? null : Number(v.replace(/\D/g, '')) })} />
-          <label className="af">
-            <span>Seu papel</span>
-            <select value={g.kind} onChange={(e) => up(i, { kind: e.target.value })}>
-              <option value="creator">Criador</option>
-              <option value="contributor">Colaborador</option>
-            </select>
-          </label>
-          <P label="Descrição" area value={g.desc} onChange={(v) => up(i, { desc: v })} />
-        </Item>
-      ))}
-      <button className="btn" onClick={() => set({ games: [...c.games, { placeId: null, name: 'Novo jogo', kind: 'creator', desc: { pt: '', en: '' } }] })}>+ Jogo</button>
-    </>
+    <Item i={i} n={c.games.length} title={g.name}
+      onMove={(d) => set({ games: move(c.games, i, d) })} onDel={() => set({ games: del(c.games, i) })}>
+      <T label="ID do jogo (roblox.com/games/ID). Vazio = Em breve" value={g.placeId ?? ''} ph="9285238704"
+        onChange={(v) => up({ placeId: v.replace(/\D/g, '') === '' ? null : Number(v.replace(/\D/g, '')) })} />
+      {look.s !== 'idle' && <p className={`ahint${look.s === 'err' ? ' err' : ''}`}>{look.m}</p>}
+      <T label={g.placeId ? 'Nome (vem do ID, mas você pode editar)' : 'Nome'} value={g.name} onChange={(v) => up({ name: v })} />
+      <label className="af">
+        <span>Seu papel</span>
+        <select value={g.kind} onChange={(e) => up({ kind: e.target.value })}>
+          <option value="creator">Criador</option>
+          <option value="contributor">Colaborador</option>
+        </select>
+      </label>
+      <label className="af">
+        <span>Situação</span>
+        <select value={g.status === 'past' ? 'past' : 'active'} onChange={(e) => up({ status: e.target.value })}>
+          <option value="active">Trabalho nele atualmente</option>
+          <option value="past">Já trabalhei, não trabalho mais</option>
+        </select>
+      </label>
+      <div className="af"><span>Tags</span><Tags value={g.tags || []} suggest={GAME_TAGS} onChange={(v) => up({ tags: v })} /></div>
+    </Item>
   )
 }
 
+const GamesTab = ({ c, set }) => (
+  <>
+    {c.games.map((g, i) => <GameItem key={i} g={g} i={i} c={c} set={set} />)}
+    <button className="btn" onClick={() => set({ games: [...c.games, { placeId: null, name: 'Novo jogo', kind: 'creator', status: 'active', tags: [] }] })}>+ Jogo</button>
+  </>
+)
+
 const WorkTab = ({ c, set }) => {
   const up = (i, patch) => set({ work: upd(c.work, i, { ...c.work[i], ...patch }) })
-  const label = (w) => w.title?.pt || (w.type === 'video' ? 'Vídeo' : w.id === 'wheel' ? 'Demo: roleta de prêmios' : 'Demo: barra de quest')
+  const label = (w) => w.title?.pt || (w.type === 'video' ? 'Vídeo' : 'Imagem')
+  const add = (type) => set({ work: [...c.work, { id: `w${Date.now().toString(36)}`, type, src: '', tags: [], title: { pt: '', en: '' }, desc: { pt: '', en: '' } }] })
   return (
     <>
+      <p className="ahint">Escreva só em português. O inglês é traduzido sozinho ao publicar.</p>
       {c.work.map((w, i) => (
-        <Item key={i} i={i} n={c.work.length} title={label(w)}
+        <Item key={w.id || i} i={i} n={c.work.length} title={label(w)}
           onMove={(d) => set({ work: move(c.work, i, d) })} onDel={() => set({ work: del(c.work, i) })}>
-          {w.type === 'video'
-            ? <T label="Link do vídeo (.mp4)" value={w.src} ph="https://..." onChange={(v) => up(i, { src: v })} />
-            : (
-              <label className="af">
-                <span>Demo</span>
-                <select value={w.id} onChange={(e) => up(i, { id: e.target.value })}>
-                  <option value="quest">Barra de quest</option>
-                  <option value="wheel">Roleta de prêmios</option>
-                </select>
-              </label>
-            )}
-          <div className="af"><span>Tags (UI, Systems, VFX)</span><Tags value={w.tags} onChange={(v) => up(i, { tags: v })} /></div>
-          <P label={w.type === 'video' ? 'Título' : 'Título (opcional)'} value={w.title} onChange={(v) => up(i, { title: v, desc: w.desc ?? { pt: '', en: '' } })} />
-          <P label={w.type === 'video' ? 'Descrição' : 'Descrição (opcional)'} area value={w.desc} onChange={(v) => up(i, { desc: v, title: w.title ?? { pt: '', en: '' } })} />
+          <T label={w.type === 'video' ? 'Link do vídeo (.mp4)' : 'Link da imagem'} value={w.src} ph={w.type === 'video' ? 'https://... ou /media/video.mp4' : 'https://... ou /media/imagem.png'}
+            onChange={(v) => up(i, { src: v })} />
+          <div className="af"><span>Tags (UI, Systems, VFX)</span><Tags value={w.tags || []} onChange={(v) => up(i, { tags: v })} /></div>
+          <P label="Título (opcional)" value={w.title} onChange={(v) => up(i, { title: v })} />
+          <P label="Descrição (opcional)" area value={w.desc} onChange={(v) => up(i, { desc: v })} />
         </Item>
       ))}
       <div className="arow">
-        <button className="btn" onClick={() => set({ work: [...c.work, { id: 'quest', type: 'demo', tags: ['UI'] }] })}>+ Demo</button>
-        <button className="btn" onClick={() => set({ work: [...c.work, { id: `v${Date.now().toString(36)}`, type: 'video', src: '', tags: [], title: { pt: '', en: '' }, desc: { pt: '', en: '' } }] })}>+ Vídeo</button>
+        <button className="btn" onClick={() => add('video')}>+ Vídeo</button>
+        <button className="btn" onClick={() => add('image')}>+ Imagem</button>
       </div>
     </>
   )
@@ -225,9 +245,9 @@ export default function Admin({ content, dirty, setDraft, onPublished, onDiscard
     setBusy(true); setMsg('')
     try {
       const { token } = await api('/auth/ip', { method: 'POST' })
-      await api('/content', { method: 'PUT', token, body: content })
-      onPublished(content)
-      setMsg('Publicado ✓')
+      const r = await api('/content', { method: 'PUT', token, body: content })
+      onPublished(r.content ? mergeContent(r.content) : content)
+      setMsg(r.translated === false ? 'Publicado ✓ (sem tradução: falta ativar o Workers AI)' : 'Publicado ✓ (inglês traduzido)')
     } catch (e) {
       setMsg(`⚠ ${e.message}`)
     } finally { setBusy(false) }

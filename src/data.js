@@ -16,43 +16,19 @@ export const links = [
   { id: 'x', label: 'Twitter', href: `https://x.com/${HANDLE}` },
 ]
 
-// kind: 'creator' | 'contributor'. placeId: null = "Em breve" (sem botão de jogar)
+// kind: 'creator' | 'contributor'. status: 'active' (trabalho agora) | 'past' (já trabalhei).
+// tags: Full-Stack, Long-Term, Short-Term... placeId: null = "Em breve" (sem botão de jogar)
 export const games = [
-  {
-    placeId: 9285238704,
-    name: 'Race Clicker',
-    kind: 'contributor',
-    desc: {
-      pt: 'Jogo de clicker com corridas no Roblox, no qual atuo como colaborador.',
-      en: 'Racing clicker game on Roblox, where I work as a contributor.',
-    },
-  },
-  {
-    placeId: null,
-    name: 'My Fish',
-    kind: 'creator',
-    desc: {
-      pt: 'Jogo de pesca com quests, níveis e recompensas por progressão.',
-      en: 'Fishing game with quests, levels and progression rewards.',
-    },
-  },
-  {
-    placeId: null,
-    name: 'Clicker Simulator 2',
-    kind: 'creator',
-    desc: {
-      pt: 'Novo simulador de clicker, ainda em desenvolvimento.',
-      en: 'New clicker simulator, still in development.',
-    },
-  },
+  { placeId: 9285238704, name: 'Race Clicker', kind: 'contributor', status: 'active', tags: [] },
+  { placeId: null, name: 'My Fish', kind: 'creator', status: 'active', tags: [] },
+  { placeId: null, name: 'Clicker Simulator 2', kind: 'creator', status: 'active', tags: [] },
 ]
 
-// Demos interativas ficam no código. Para vídeos, coloque o .mp4 em public/media/ e descomente.
+// Vídeos e imagens: coloque o arquivo em public/media/ e descomente um exemplo.
 export const work = [
-  { id: 'quest', type: 'demo', tags: ['UI'] },
-  { id: 'wheel', type: 'demo', tags: ['UI', 'Systems'] },
   // { id: 'arena', type: 'video', src: '/media/arena.mp4', tags: ['Systems'],
   //   title: { pt: 'Combate em arena', en: 'Arena combat' }, desc: { pt: 'Descrição', en: 'Description' } },
+  // { id: 'hud', type: 'image', src: '/media/hud.png', tags: ['UI'] },
 ]
 
 // icon: code | server | monitor | gauge | network | wrench. Use `crases` para destacar código.
@@ -141,20 +117,15 @@ export const text = {
     games: {
       title: 'Jogos',
       lead: 'Jogos em que trabalho. Os números são atualizados ao vivo.',
-      all: 'Todos', creator: 'Criador', contributor: 'Colaborador',
+      all: 'Todos', creator: 'Criador', contributor: 'Colaborador', past: 'Anteriores', pastTag: 'Já trabalhei',
+      tags: { 'Full-Stack': 'Full-Stack', 'Long-Term': 'Longo prazo', 'Short-Term': 'Curto prazo' },
       play: 'Jogar', soon: 'Em breve', playing: 'Jogando agora', visits: 'Visitas', favorites: 'Favoritos',
     },
     work: {
       title: 'Mais trabalhos',
-      lead: 'Sistemas e interfaces. Teste as demos, elas são interativas.',
+      lead: 'Sistemas e interfaces que já desenvolvi.',
       all: 'Todos',
-      try: 'Clique para testar',
       tags: { Systems: 'Sistemas', UI: 'UI', VFX: 'VFX' },
-    },
-    demos: {
-      quest: { t: 'Barra de quest', d: 'Pop-up e tremida no progresso, contorno brilhando ao completar.' },
-      wheel: { t: 'Roleta de prêmios', d: 'Gira, desacelera e paga a recompensa.' },
-      questName: 'Pescar 3 peixes', fish: '+1 peixe', reset: 'Reiniciar', spin: 'Girar', coins: 'moedas',
     },
     contact: {
       title: 'Contato',
@@ -200,20 +171,15 @@ export const text = {
     games: {
       title: 'Games',
       lead: 'Games I work on. The numbers update live.',
-      all: 'All', creator: 'Creator', contributor: 'Contributor',
+      all: 'All', creator: 'Creator', contributor: 'Contributor', past: 'Past', pastTag: 'Past project',
+      tags: { 'Full-Stack': 'Full-Stack', 'Long-Term': 'Long-term', 'Short-Term': 'Short-term' },
       play: 'Play', soon: 'Coming soon', playing: 'Playing now', visits: 'Visits', favorites: 'Favorites',
     },
     work: {
       title: 'More work',
-      lead: 'Systems and interfaces. Try the demos, they are interactive.',
+      lead: 'Systems and interfaces I have built.',
       all: 'All',
-      try: 'Click to try',
       tags: { Systems: 'Systems', UI: 'UI', VFX: 'VFX' },
-    },
-    demos: {
-      quest: { t: 'Quest bar', d: 'Pop-up and shake on progress, glowing outline on completion.' },
-      wheel: { t: 'Prize wheel', d: 'Spins, slows down and pays out the reward.' },
-      questName: 'Catch 3 fish', fish: '+1 fish', reset: 'Reset', spin: 'Spin', coins: 'coins',
     },
     contact: {
       title: 'Contact',

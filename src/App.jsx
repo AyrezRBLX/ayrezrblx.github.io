@@ -1,7 +1,7 @@
 import { Suspense, lazy, useContext, useEffect, useId, useRef, useState } from 'react'
 import { PT_COUNTRIES, text } from './data.js'
 import { API_URL } from './config.js'
-import { ContentCtx, defaults, mergeContent, safeUrl } from './content.js'
+import { ContentCtx, defaults, mergeContent, pick, safeUrl } from './content.js'
 import { brand } from './icons.js'
 
 const Admin = lazy(() => import('./Admin.jsx'))
@@ -244,7 +244,7 @@ const About = ({ t, lang }) => {
     <Section id="about" title={t.about.title}>
       <R card>
         <Card soft className="about">
-          {about[lang].map((p, i) => <p key={i}>{p}</p>)}
+          {(about[lang]?.length ? about[lang] : about.pt).map((p, i) => <p key={i}>{p}</p>)}
         </Card>
       </R>
     </Section>
@@ -302,7 +302,7 @@ const Skills = ({ t, lang }) => {
             icon={<svg className={`sico i-${s.icon}`} viewBox="0 0 24 24" aria-hidden="true">{skillIcons[s.icon] || skillIcons.code}</svg>}>
             <Card className="scard">
               <h4>{s.title}</h4>
-              <p>{renderCode(s.desc[lang])}</p>
+              <p>{renderCode(pick(s.desc, lang))}</p>
               <ul className="tags">{s.tags.map((g, k) => <li key={g} style={{ '--k': k }}>{g}</li>)}</ul>
             </Card>
           </TreeNode>
@@ -325,14 +325,19 @@ const Stat = ({ k, label, value, short, pct, live }) => (
 const GameCard = ({ g, d, t, lang }) => {
   const dead = d && d.playing === 0
   return (
-    <Card className={`game${dead ? ' dead' : ''}`} title={dead ? ui[lang].dead : undefined}>
+    <Card className={`game${dead ? ' dead' : ''}${g.status === 'past' ? ' past' : ''}`} title={dead ? ui[lang].dead : undefined}>
       <div className="cover">
         {d?.icon ? <img src={d.icon} alt={g.name} /> : <b>{g.name[0]}</b>}
         <span className="badge role">{t.games[g.kind]}</span>
         {d && <span className="badge now"><i className="dot" /><Counter value={d.playing} /></span>}
       </div>
       <h4>{g.name}</h4>
-      <p>{g.desc[lang]}</p>
+      {(g.status === 'past' || g.tags?.length > 0) && (
+        <ul className="tags">
+          {g.status === 'past' && <li className="past-tag" style={{ '--k': 0 }}>{t.games.pastTag}</li>}
+          {(g.tags || []).map((k, n) => <li key={k} style={{ '--k': n + 1 }}>{t.games.tags[k] || k}</li>)}
+        </ul>
+      )}
       {g.placeId && (
         <dl className="stats">
           <Stat k="playing" label={t.games.playing} value={d?.playing} live />
@@ -351,13 +356,15 @@ const GameCard = ({ g, d, t, lang }) => {
 const Games = ({ t, lang, stats }) => {
   const { games } = useC()
   const [f, setF] = useState('all')
-  const count = (k) => games.filter((g) => k === 'all' || g.kind === k).length
+  const match = (g, k) => k === 'all' || (k === 'past' ? g.status === 'past' : g.kind === k)
+  const count = (k) => games.filter((g) => match(g, k)).length
+  const keys = ['all', 'creator', 'contributor', ...(count('past') ? ['past'] : [])]
   return (
     <Section id="games" title={t.games.title} lead={t.games.lead}>
-      <Filters value={f} onChange={setF}
-        options={['all', 'creator', 'contributor'].map((k) => [k, `${t.games[k]} ${count(k)}`])} />
+      <Filters value={keys.includes(f) ? f : 'all'} onChange={setF}
+        options={keys.map((k) => [k, `${t.games[k]} ${count(k)}`])} />
       <div className="grid">
-        {games.filter((g) => f === 'all' || g.kind === f).map((g, i) => (
+        {games.filter((g) => match(g, keys.includes(f) ? f : 'all')).map((g, i) => (
           <R key={g.name} i={i} card className="cell g">
             <GameCard g={g} d={stats.games[g.placeId]} t={t} lang={lang} />
           </R>
@@ -369,72 +376,33 @@ const Games = ({ t, lang, stats }) => {
 
 /* ---------- Mais trabalhos ---------- */
 
-const QuestDemo = ({ t }) => {
-  const [n, setN] = useState(0)
-  const done = n === 3
-  return (
-    <div className={`quest${done ? ' done' : ''}`}>
-      <div key={n} className={`qrow${n ? ' shake' : ''}`}>
-        <span>{t.demos.questName}</span><b className="hit">{n}/3</b>
-      </div>
-      <div className="qbar"><span style={{ width: `${(n / 3) * 100}%` }} /></div>
-      <button className="btn" onClick={() => setN(done ? 0 : n + 1)}>{done ? t.demos.reset : t.demos.fish}</button>
-    </div>
-  )
-}
-
-const prizes = [10, 50, 25, 100, 5, 500]
-
-const WheelDemo = ({ t }) => {
-  const [rot, setRot] = useState(0)
-  const [busy, setBusy] = useState(false)
-  const [prize, setPrize] = useState(null)
-  const spin = () => {
-    if (busy) return
-    const next = rot + 1440 + Math.floor(Math.random() * 360)
-    setBusy(true); setPrize(null); setRot(next)
-    setTimeout(() => {
-      setPrize(prizes[Math.floor(((360 - (next % 360)) % 360) / 60)])
-      setBusy(false)
-    }, 3300)
-  }
-  return (
-    <div className="wheelwrap">
-      <div className="pointer" />
-      <div className="wheel" style={{ transform: `rotate(${rot}deg)` }} />
-      <button className="btn primary" onClick={spin} disabled={busy}>{t.demos.spin}</button>
-      <b key={prize} className="prize hit">{prize ? `+${prize} ${t.demos.coins}` : '\u00a0'}</b>
-    </div>
-  )
-}
-
 const workIcons = {
-  quest: <><rect pathLength={1} x="3" y="9" width="18" height="6" rx="3" /><path pathLength={1} d="M7 12h6" /></>,
-  wheel: <><circle pathLength={1} cx="12" cy="12" r="9" /><path pathLength={1} d="M12 3v18M3 12h18M5.6 5.6l12.8 12.8M18.4 5.6L5.6 18.4" /></>,
+  image: <><rect pathLength={1} x="3" y="4" width="18" height="16" rx="3" /><circle pathLength={1} cx="9" cy="10" r="1.6" /><path pathLength={1} d="M4 18l5-5 4 4 3-3 4 4" /></>,
   video: <><rect pathLength={1} x="3" y="5" width="18" height="14" rx="3" /><path pathLength={1} d="M10 9.5v5l4.5-2.5z" /></>,
 }
 
 const Work = ({ t, lang }) => {
   const { work } = useC()
-  const demos = { quest: <QuestDemo t={t} />, wheel: <WheelDemo t={t} /> }
+  const items = work.filter((w) => w.src && (w.type === 'video' || w.type === 'image'))
+  if (!items.length) return null
   return (
     <Section id="work" title={t.work.title} lead={t.work.lead}>
       <Tree>
-        {work.map((w, i) => {
-          const base = t.demos[w.id] || { t: '', d: '' }
-          const info = w.title ? { t: w.title[lang] || base.t, d: w.desc?.[lang] || base.d } : base
-          const key = w.type === 'video' ? 'video' : w.id
+        {items.map((w, i) => {
+          const title = pick(w.title, lang)
+          const desc = pick(w.desc, lang)
           return (
             <TreeNode key={`${w.id}-${i}`} i={i}
-              icon={<svg className={`sico i-${key}`} viewBox="0 0 24 24" aria-hidden="true">{workIcons[key] || workIcons.video}</svg>}>
+              icon={<svg className={`sico i-${w.type}`} viewBox="0 0 24 24" aria-hidden="true">{workIcons[w.type]}</svg>}>
               <Card className="scard wcard">
                 <div className="stage">
-                  {w.type === 'video' ? <video src={safeUrl(w.src)} autoPlay loop muted playsInline /> : demos[w.id]}
+                  {w.type === 'video'
+                    ? <video src={safeUrl(w.src)} autoPlay loop muted playsInline />
+                    : <img src={safeUrl(w.src)} alt={title} loading="lazy" />}
                 </div>
-                {w.type !== 'video' && <span className="hint"><i className="dot" />{t.work.try}</span>}
-                <span className="role">{w.tags.map((k) => t.work.tags[k] || k).join(', ')}</span>
-                <h4>{info.t}</h4>
-                <p>{info.d}</p>
+                {w.tags?.length > 0 && <span className="role">{w.tags.map((k) => t.work.tags[k] || k).join(', ')}</span>}
+                {title && <h4>{title}</h4>}
+                {desc && <p>{desc}</p>}
               </Card>
             </TreeNode>
           )
@@ -746,6 +714,7 @@ export default function App() {
   const isAdmin = useIsAdmin()
   const active = useActive()
   const scrolled = useScrolled()
+  const hasWork = content.work.some((w) => w.src)
   const rows = content.games.filter((g) => g.placeId && stats.games[g.placeId]).map((g) => ({ g, d: stats.games[g.placeId] }))
   const contacts = [
     ...content.links.map((l) => ({ ...l, path: brand[l.id] })),
@@ -759,7 +728,7 @@ export default function App() {
       <Fx />
       <header className={`bar${scrolled ? ' scrolled' : ''}`}>
         <nav className="pill">
-          {Object.keys(t.nav).map((k) => (
+          {Object.keys(t.nav).filter((k) => k !== 'work' || hasWork).map((k) => (
             <a key={k} href={`#${k}`} className={active === k ? 'on' : ''}>{t.nav[k]}</a>
           ))}
         </nav>

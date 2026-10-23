@@ -144,7 +144,7 @@ dd{font-size:24px;font-weight:700;font-variant-numeric:tabular-nums}
 
 /* Demos */
 .stage{min-height:170px;display:grid;place-items:center;padding:14px;border-radius:10px;background:rgba(0,0,0,.45);overflow:hidden}
-.stage video{width:100%;border-radius:8px}
+.stage video,.stage img{width:100%;border-radius:8px;display:block}
 .qbar{width:100%;height:12px;border-radius:99px;background:#26262a;overflow:hidden}
 .qbar span{display:block;height:100%;width:0;border-radius:inherit;background:linear-gradient(90deg,#777,#fff);transition:width .5s cubic-bezier(.2,.8,.2,1)}
 .quest{width:100%;display:grid;gap:12px;padding:14px;border-radius:12px;border:2px solid transparent;transition:border-color .3s,box-shadow .3s}
@@ -276,3 +276,9 @@ dd{font-size:24px;font-weight:700;font-variant-numeric:tabular-nums}
 .adm-open{position:fixed;left:16px;bottom:16px;z-index:40;display:grid;place-items:center;width:38px;height:38px;border-radius:50%;border:1px solid var(--line);background:rgba(18,18,20,.85);color:#fff;opacity:.4;cursor:pointer;transition:opacity .2s,transform .2s,border-color .2s}
 .adm-open:hover{opacity:1;transform:scale(1.1);border-color:#fff}
 .adm-open svg{width:18px;height:18px;fill:currentColor}
+
+.ahint{color:var(--m);font-size:12px;line-height:1.4}.ahint.err{color:#fff;font-weight:600}
+.asug{background:none;border:1px dashed var(--line);color:var(--m);font:inherit;font-size:12px;padding:2px 10px;border-radius:99px;cursor:pointer;transition:.2s}
+.asug:hover{color:#fff;border-color:#fff}
+.tags li.past-tag{background:rgba(245,197,24,.18);color:var(--y)}
+.game.past .cover img{filter:grayscale(.6)}
