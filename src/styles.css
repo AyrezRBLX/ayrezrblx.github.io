@@ -282,3 +282,4 @@ dd{font-size:24px;font-weight:700;font-variant-numeric:tabular-nums}
 .asug:hover{color:#fff;border-color:#fff}
 .tags li.past-tag{background:rgba(245,197,24,.18);color:var(--y)}
 .game.past .cover img{filter:grayscale(.6)}
+.game .tags{justify-content:center;align-content:flex-start;flex:1;margin-top:0}
